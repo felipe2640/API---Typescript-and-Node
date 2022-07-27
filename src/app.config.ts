@@ -12,7 +12,9 @@ export default class App {
   }
 
   public listen() {
-    this.app.listen(this.port, () => console.log('Express has been started'));
+    this.app.listen(this.port, () =>
+      console.log(`Express has been started http://localhost:${this.port}`)
+    );
   }
 
   private setMiddlewares(middlewares: {

@@ -1,37 +1,33 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { sign } from 'jsonwebtoken';
-import cookieParser from 'cookie-parser';
+
+import session from 'express-session';
 
 import { IUser } from '../models/task.model';
 import { prisma } from './prisma.service';
-import { token } from 'morgan';
-import { Cookie } from 'express-session';
 
 export default class AuthService {
   public async create(req: Request, res: Response) {
-    const { email, name, password: pass } = req.body as IUser;
-    const jwtToken =
-      '1ed4e67233e04a70f30bce6ffb2d2893c5d7942fdc0f21ef2305c9bbc37d3a057558a9';
-
+    const { email, name, password } = req.body as IUser;
     // Validate user input
-    if (!(email && pass && name)) {
+    if (!(email && password && name)) {
       res.status(400).send('All input is required');
     }
     try {
       //Encrypt user password
       bcrypt
-        .hash(pass, 10)
+        .hash(password, 10)
         .then(async (hash) => {
-          const token = sign({ user_id: name }, jwtToken);
-          const user = { email, name, password: hash, token };
+          // const token = sign({ id: name, email }, process.env.TOKEN_KEY!);
+          const user = { email, name, password: hash };
           await prisma.users.create({ data: user });
         })
         .then((user) => {
-          res.cookie('jwt', user, {
-            httpOnly: true,
-            maxAge: 30 * 60 * 60 * 1000 // 3hrs in ms
-          });
+          // res.cookie('jwt', user, {
+          //   httpOnly: true,
+          //   maxAge: 30 * 60 * 60 * 1000 // 3hrs in ms
+          // });
           res.status(201).json({
             message: 'User successfully created',
             user: user
@@ -50,9 +46,7 @@ export default class AuthService {
       });
     }
   }
-  public async login(req: Request, res: Response) {
-    const jwtToken =
-      '1ed4e67233e04a70f30bce6ffb2d2893c5d7942fdc0f21ef2305c9bbc37d3a057558a9';
+  public async login(req: Request, res: Response, next: any) {
     const { email, password: pass } = req.body;
 
     // Validate user input
@@ -71,17 +65,17 @@ export default class AuthService {
         bcrypt.compare(pass, userDB.password).then(function (result) {
           if (result) {
             const maxAge = 3 * 60 * 60;
-            const token = sign({ id: userDB.id, email }, jwtToken, {
-              expiresIn: maxAge // 3hrs in sec
-            });
-            res.cookie('jwt', token, {
-              httpOnly: true,
-              maxAge: maxAge * 1000 // 3hrs in ms
-            });
+            const token = sign(
+              { id: userDB.name, email },
+              process.env.TOKEN_KEY!,
+              {
+                expiresIn: maxAge // 3hrs in sec
+              }
+            );
             res.status(201).json({
               message: 'User successfully Logged in',
-              user: userDB.id,
-              Cookie: req.cookies.jwt
+              user: { userDB },
+              token: token
             });
           } else {
             res.status(400).json({ message: 'Login not successful' });
@@ -93,7 +87,11 @@ export default class AuthService {
     }
   }
   public async Logout(req: Request, res: Response) {
-    res.cookie('jwt', '', { maxAge: 1 });
-    res.redirect('/');
+    res.header('jwt' + '');
+  }
+
+  public async Users(req: Request, res: Response) {
+    const users = await prisma.users.findMany();
+    res.json({ msg: users });
   }
 }

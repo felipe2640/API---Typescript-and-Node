@@ -26,22 +26,45 @@ interface Props {
 const Login: React.FC<Props> = ({ isOpenModal }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [errormsg, SetErrormsg] = useState(null);
   const [isSendingLogin, setIsSendingLogin] = useState(false);
+
+  function validateName(value, type) {
+    if (value === " ") {
+      SetErrormsg(`${type} is required`);
+    } else if (value.length < 8) {
+      SetErrormsg(`minimun of 6 caracteres of ${type} `);
+    }
+  }
 
   async function handleSubmitLogin(event: FormEvent) {
     event.preventDefault();
     setIsSendingLogin(true);
+    validateName(email, "email");
+    validateName(password, "password");
+    try {
+      const token = await api
+        .post("/api/auth/login", {
+          email,
+          password,
+        })
+        .then((value: any) => {
+          return value.data.token;
+        });
 
-    await api.post("/login/auth", {
-      email,
-      password,
-    });
-
-    const users = await api.get("/users");
-    console.log(users);
-    setIsSendingLogin(false);
+      const users = await api.get("/api/auth/users", {
+        headers: {
+          Authorization: "jwt " + token,
+        },
+      });
+      console.log(users);
+      setIsSendingLogin(false);
+    } catch (error) {
+      setIsSendingLogin(false);
+      return error;
+    }
   }
+
   return (
     <Flex
       minH={"100vh"}
@@ -65,7 +88,7 @@ const Login: React.FC<Props> = ({ isOpenModal }) => {
             p={8}
           >
             <Stack spacing={4}>
-              <FormControl id="email">
+              <FormControl id="email" isInvalid={errormsg}>
                 <FormLabel>Email address</FormLabel>
                 <Input
                   type="email"
@@ -76,6 +99,7 @@ const Login: React.FC<Props> = ({ isOpenModal }) => {
               <FormControl id="password">
                 <FormLabel>Password</FormLabel>
                 <Input
+                  disabled={email.length < 3 ? true : false}
                   type="password"
                   name="password"
                   onChange={(event) => setPassword(event.target.value)}
@@ -97,6 +121,10 @@ const Login: React.FC<Props> = ({ isOpenModal }) => {
                     bg: "blue.500",
                   }}
                   type="submit"
+                  disabled={
+                    email.length < 2 || password.length < 2 ? true : false
+                  }
+                  isLoading={isSendingLogin}
                 >
                   Sign in
                 </Button>

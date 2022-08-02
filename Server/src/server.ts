@@ -7,19 +7,22 @@ import cookieParser from 'cookie-parser';
 import myMiddleware from './middleware/log.middleware';
 import TaskController from './controllers/task.controller';
 import adminAuth from './middleware/auth.middleware';
+import AuthController from './controllers/auth.controller';
 
 const app = new App({
-  port: 3333,
+  port: process.env.PORT!,
   middlewares: [
     morgan('dev'),
     bodyParser.urlencoded({ extended: false }),
     bodyParser.json(),
-    cors(),
+    cors({
+      origin: `${process.env.CORS_URL}`,
+      credentials: true
+    }),
     cookieParser(),
     myMiddleware
-    // adminAuth
   ],
-  controllers: [new TaskController()]
+  controllers: [new TaskController(), new AuthController()]
 });
 
 app.listen();

@@ -2,9 +2,9 @@ import express, { Application } from 'express';
 
 export default class App {
   public app: Application;
-  public port: number;
+  public port: string;
 
-  constructor(appConfig: { port: number; middlewares: any; controllers: any }) {
+  constructor(appConfig: { port: string; middlewares: any; controllers: any }) {
     this.app = express();
     this.port = appConfig.port;
     this.setMiddlewares(appConfig.middlewares);
@@ -13,7 +13,9 @@ export default class App {
 
   public listen() {
     this.app.listen(this.port, () =>
-      console.log(`Express has been started http://localhost:${this.port} `)
+      console.log(
+        `Express has been started http://localhost:${process.env.PORT} e cors ${process.env.CORS_URL} `
+      )
     );
   }
 
